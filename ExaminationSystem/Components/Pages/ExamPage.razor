@@ -1,0 +1,154 @@
+@page "/instExams/{ExamId:guid}"
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<h3>Edit Exam Questions</h3>
+
+@if (Exam == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    @foreach (var question in Exam.Questions)
+    {
+        <QuestionComponent Question="question" OnRemove="@(() => RemoveQuestion(question))" />
+    }
+
+    <button class="btn btn-outline-primary" @onclick="AddQuestion">+ Add Question</button>
+    <button class="btn btn-success" @onclick="SaveChanges">Save All</button>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mt-2">@ErrorMessage</div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid ExamId { get; set; }
+
+    private Exam? Exam;
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        Exam = await context.Exams
+            .Include(e => e.Questions)
+                .ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(e => e.Id == ExamId);
+    }
+
+    private void AddQuestion()
+    {
+        Exam!.Questions.Add(new Question { Id = Guid.NewGuid(), ExamId = Exam!.Id });
+    }
+
+    private void RemoveQuestion(Question question)
+    {
+        Exam!.Questions.Remove(question);
+    }
+
+    private async Task SaveChanges()
+    {
+        ErrorMessage = null;
+
+        foreach (var question in Exam!.Questions)
+        {
+            if (!question.Answers.Any(a => a.IsCorrect))
+            {
+                ErrorMessage = $"Question '{question.Text}' must have at least one correct answer.";
+                return;
+            }
+        }
+
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        var examInDb = await context.Exams
+            .Include(e => e.Questions)
+                .ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(e => e.Id == Exam.Id);
+
+        if (examInDb == null)
+        {
+            ErrorMessage = "Exam not found.";
+            return;
+        }
+
+        // Remove deleted questions
+        var removedQuestions = examInDb.Questions
+            .Where(q => !Exam.Questions.Any(eq => eq.Id == q.Id))
+            .ToList();
+        foreach (var q in removedQuestions)
+            context.Questions.Remove(q);
+
+        foreach (var updatedQuestion in Exam.Questions)
+        {
+            var existingQuestion = examInDb.Questions.FirstOrDefault(q => q.Id == updatedQuestion.Id);
+            if (existingQuestion == null)
+            {
+                // Add new question and answers
+                context.Questions.Add(new Question
+                {
+                    Id = updatedQuestion.Id,
+                    ExamId = Exam.Id,
+                    Text = updatedQuestion.Text,
+                    Point = updatedQuestion.Point,
+                    Answers = updatedQuestion.Answers.Select(a => new Answer
+                    {
+                        Id = a.Id,
+                        Text = a.Text,
+                        IsCorrect = a.IsCorrect,
+                        QuestionId = updatedQuestion.Id
+                    }).ToList()
+                });
+            }
+            else
+            {
+                // Update question fields
+                existingQuestion.Text = updatedQuestion.Text;
+                existingQuestion.Point = updatedQuestion.Point;
+
+                // Remove deleted answers
+                var removedAnswers = existingQuestion.Answers
+                    .Where(a => !updatedQuestion.Answers.Any(ua => ua.Id == a.Id))
+                    .ToList();
+                foreach (var ans in removedAnswers)
+                    context.Answers.Remove(ans);
+
+                // Add/update answers
+                foreach (var updatedAnswer in updatedQuestion.Answers)
+                {
+                    var existingAnswer = existingQuestion.Answers.FirstOrDefault(a => a.Id == updatedAnswer.Id);
+                    if (existingAnswer == null)
+                    {
+                        existingQuestion.Answers.Add(new Answer
+                        {
+                            Id = updatedAnswer.Id,
+                            QuestionId = existingQuestion.Id,
+                            Text = updatedAnswer.Text,
+                            IsCorrect = updatedAnswer.IsCorrect
+                        });
+                    }
+                    else
+                    {
+                        existingAnswer.Text = updatedAnswer.Text;
+                        existingAnswer.IsCorrect = updatedAnswer.IsCorrect;
+                    }
+                }
+            }
+        }
+
+        // Explicitly attach modified entities if needed
+        context.Entry(examInDb).State = EntityState.Modified;
+
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/instExams");
+    }
+
+
+
+}

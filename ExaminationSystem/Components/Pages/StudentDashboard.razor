@@ -1,0 +1,136 @@
+﻿@page "/studentDashboard"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+
+@attribute [Authorize(Roles = "Student")]
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>Student Dashboard</PageTitle>
+
+@if (userRole == "Student")
+{
+    <MudContainer Class="mt-16 px-8" MaxWidth="MaxWidth.False">
+        <MudGrid>
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                    <MudText Typo="Typo.h6">Total Enrolled Courses</MudText>
+                    <MudText Typo="Typo.h4">@TotalEnrolledCourses</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="4">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                    <MudText Typo="Typo.h6">Exams Taken</MudText>
+                    <MudText Typo="Typo.h4">@TotalExamsTaken</MudText>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="12" md="4">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                    <MudText Typo="Typo.h6">Total Grades / 100</MudText>
+                    <MudText Typo="Typo.h4">@TotalGrade</MudText>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudPaper Elevation="2" Class="pa-4" Style="height: 50vh; overflow-y: auto;">
+                    <MudText Typo="Typo.h5" Class="mb-2">Pending Exams</MudText>
+                    <MudTable Items="PendingExams" Hover="true" Dense="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Title</MudTh>
+                            <MudTh>Date</MudTh>
+                            <MudTh>Duration</MudTh>
+                            <MudTh>Full Mark</MudTh>
+                            <MudTh>Course</MudTh>
+                            <MudTh></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.Title</MudTd>
+                            <MudTd>@context.Date.ToShortDateString()</MudTd>
+                            <MudTd>@context.Duration</MudTd>
+                            <MudTd>@context.FullMark</MudTd>
+                            <MudTd>@context.Course?.Name</MudTd>
+                            <MudTd>
+                                @{
+                                    var sc = enrolledCourses.FirstOrDefault(sc => sc.Course?.Exam?.Id == context.Id);
+                                    if (sc?.Grade != null)
+                                    {
+                                        <MudText Color="@(sc.Grade >= context.FullMark / 2 ? Color.Success : Color.Error)">
+                                            Grade: @sc.Grade / @context.FullMark
+                                        </MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => TakeExam(context.Id))">Take Exam</MudButton>
+                                    }
+                                }
+                            </MudTd>
+
+
+                        </RowTemplate>
+                    </MudTable>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+    </MudContainer>
+}
+
+@code {
+    private string? userId;
+    private string? userRole;
+
+    private int TotalEnrolledCourses = 0;
+    private int TotalExamsTaken = 0;
+    private decimal TotalGrade = 0;
+
+    private ICollection<StdCrs> enrolledCourses;
+
+    private List<Exam> PendingExams = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userId is null || userRole != "Student")
+        {
+            NavigationManager.NavigateTo("/");
+            return;
+        }
+
+        using var db = await DbFactory.CreateDbContextAsync();
+
+        var student = await db.Students
+            .Include(s => s.StudentCourses)
+                .ThenInclude(sc => sc.Course)
+                    .ThenInclude(c => c.Exam)
+            .Include(s => s.StudentCourses)
+                .ThenInclude(sc => sc.Course)
+                    .ThenInclude(c => c.Instructor)
+            .FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
+
+        if (student is null) return;
+
+        enrolledCourses = student.StudentCourses;
+
+        TotalEnrolledCourses = enrolledCourses.Count;
+        TotalExamsTaken = enrolledCourses.Count(sc => sc.Grade != null);
+        TotalGrade = enrolledCourses.Sum(sc => sc.Grade ?? 0);
+
+        PendingExams = enrolledCourses
+            .Where(sc => sc.Course.Exam != null)
+            .Select(sc => sc.Course.Exam!)
+            .ToList();
+
+    }
+
+    private void TakeExam(Guid examId)
+    {
+        NavigationManager.NavigateTo($"/takeExam/{examId}");
+    }
+}

@@ -1,0 +1,64 @@
+﻿@page "/instCourses/details"
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+
+@attribute [Authorize]
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid Id { get; set; }
+
+    private string? userId;
+    private string? userRole;
+
+    private Course? Course;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        Course = await context.Courses
+            .Include(c => c.Exam)
+            .Include(c => c.Instructor)
+            .FirstOrDefaultAsync(c => c.Id == Id);
+    }
+
+}
+
+@if (Course is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h3>Course Details</h3>
+    <dl class="row">
+        <dt class="col-sm-2">Name</dt>
+        <dd class="col-sm-10">@Course.Name</dd>
+
+        <dt class="col-sm-2">Description</dt>
+        <dd class="col-sm-10">@Course.Description</dd>
+
+        <dt class="col-sm-2">Exam</dt>
+        <dd class="col-sm-10">@Course.Exam?.Title</dd>
+
+        <dt class="col-sm-2">Instructor</dt>
+        <dd class="col-sm-10">@Course.Instructor?.Name</dd>
+    </dl>
+    @if (@userRole == "Instructor")
+    {
+        <a class="btn btn-secondary" href="/instCourses">Back</a>
+    }
+    else
+    {
+        <a class="btn btn-secondary" href="/studentCourses">Back</a>
+    }
+}

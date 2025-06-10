@@ -1,0 +1,53 @@
+﻿@page "/About"
+
+<h3 class="fw-bold" Style="@($"color:#ec008c;")">About Us</h3>
+<hr />
+<div class="d-flex flex-column gap-4">
+    <div class="d-flex w-100">
+        <div style="width: 350px; height: 200px; overflow: hidden; border-radius:10px;">
+            <img src="about.jpg" alt="Alternate Text" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div> 
+        <div class="pl-3 w-75">
+            <h4>Our Vision</h4>
+		    <p>To create a seamless and efficient examination system that enhances the learning experience for students and simplifies the assessment process for educators.</p>
+		    <p>We aim to provide a platform that is user-friendly, secure, and accessible, ensuring that examinations are conducted with integrity and fairness.</p>
+        </div>
+    </div>
+
+    <div class="d-flex w-100">
+        <div style="width: 350px; height: 200px; overflow: hidden; border-radius:10px;">
+            <img src="about2.jpg" alt="Alternate Text" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        <div class="pl-3 w-75">
+            <h4>Our Mission</h4>
+			<p>To provide a comprehensive examination management system that supports educational institutions in conducting assessments efficiently and effectively.</p>
+			<p>We strive to leverage technology to streamline the examination process, ensuring that both students and educators can focus on what truly matters: learning and teaching.</p>
+        </div>
+    </div>
+
+    <div class="w-100 p-3 d-flex justify-content-between align-content-center rounded-2 bg-dark">
+        <div class="d-flex flex-column justify-content-center align-content-between">
+            <h3 class="text-white">Contact Us</h3>
+            @* <p class="text-muted">If you have any questions or feedback, feel free to reach out to us at:</p> *@
+            @* <button class="btn text-white mt-3 pa-3" style="background: linear-gradient(to right, #fc6767, #ec008c);"><a class="text-white" href="mailto:basem.m1337@gmail.com"><i class="bi bi-envelope"></i> Send an email</a></button> *@
+            <p class="m-0" Style="@($"color:#ec008c;")"><i class="bi bi-envelope"></i><a Style="@($"color:#ec008c;")" href="mailto:basem.m1337@gmail.com"> Send an email</a></p>
+        </div>
+        <div class="d-flex bg-white p-2 w-25 justify-content-between align-content-center gap-3 rounded-1">
+            <a href="https://www.linkedin.com/in/baramadan" target="_blank" class="btn social-icon-btn text-dark" title="LinkedIn">
+                <i class="bi bi-linkedin" style="font-size:100%;"></i>
+            </a>
+
+            <a href="https://github.com/Basem1337" target="_blank" class="btn social-icon-btn text-dark" title="GitHub">
+                <i class="bi bi-github" style="font-size:100%;"></i>
+            </a>
+
+            <a href="https://www.behance.net/baramadan" target="_blank" class="btn social-icon-btn text-dark" title="Behance">
+                <i class="bi bi-behance" style="font-size:100%;"></i>
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+
+}

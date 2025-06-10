@@ -1,0 +1,138 @@
+﻿@page "/studentCourses"
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthProvider
+
+@attribute [Authorize(Roles = "Student")]
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    <!-- Section 1: All Available Courses -->
+    <MudText Typo="Typo.h5" Class="mb-2">Available Courses</MudText>
+    <MudGrid>
+        @if (AllCourses != null)
+        {
+            @foreach (var course in AllCourses)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard>
+                        <MudCardContent>
+                            <MudText Typo="Typo.h6">@course.Name</MudText>
+                            <MudText Typo="Typo.body2">@course.Description</MudText>
+                            <MudText Typo="Typo.caption" Class="text-black-50 mt-2">@course.Instructor?.Name</MudText>
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudSpacer />
+                            @if (EnrolledCourseIds.Contains(course.Id))
+                            {
+                                <MudChip T="string" Color="Color.Success" Class="me-2">Enrolled</MudChip>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => Enroll(course.Id))" Class="me-2">Add</MudButton>
+                            }
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+
+    <!-- Section 2: Enrolled Courses -->
+    <MudDivider Class="my-6" />
+    <MudText Typo="Typo.h5" Class="mb-2">Your Enrolled Courses</MudText>
+    <MudGrid>
+        @foreach (var course in AllCourses.Where(c => EnrolledCourseIds.Contains(c.Id)))
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard>
+                    <MudCardContent>
+                        <MudText Typo="Typo.h6">@course.Name</MudText>
+                        <MudText Typo="Typo.body2">@course.Description</MudText>
+                        <MudText Typo="Typo.caption" Class="text-black-50 mt-2">@course.Instructor?.Name</MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Outlined" Color="Color.Secondary" Href="@($"instCourses/details?id={course.Id}")">View Details</MudButton>
+                        @if (course.ExamId is not null)
+                        {
+                            @if (CourseGrades.TryGetValue(course.Id, out var grade))
+                            {
+                                <MudButton Disabled="true" Variant="Variant.Outlined" Color="Color.Default">
+                                    Grade: @grade / @(course.Exam?.FullMark ?? 0)
+                                </MudButton>
+                            }
+                            else
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Info" Href="@($"/takeExam/{course.ExamId}")">
+                                    Take Exam
+                                </MudButton>
+                            }
+                        }
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<Course> AllCourses = new();
+    private HashSet<Guid> EnrolledCourseIds = new();
+    private Dictionary<Guid, int?> CourseGrades = new();
+    private Guid studentId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (userId is null) return;
+
+        AllCourses = await db.Courses
+            .Include(c => c.Instructor)
+            .Include(c => c.Exam)
+            .ToListAsync();
+
+        var student = await db.Students
+            .Include(s => s.StudentCourses)
+            .FirstOrDefaultAsync(s => s.ApplicationUserId == userId);
+
+        if (student is null) return;
+
+        studentId = student.Id;
+
+        AllCourses = await db.Courses
+            .Include(c => c.Instructor)
+            .ToListAsync();
+
+        EnrolledCourseIds = student.StudentCourses.Select(sc => sc.CourseId).ToHashSet();
+
+        CourseGrades = student.StudentCourses
+            .ToDictionary(sc => sc.CourseId, sc => (int?)sc.Grade);
+    }
+
+
+    private async Task Enroll(Guid courseId)
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+
+        var alreadyExists = await db.StudentCourses
+            .AnyAsync(sc => sc.CourseId == courseId && sc.StudentId == studentId);
+        if (alreadyExists) return;
+
+        db.StudentCourses.Add(new StdCrs
+        {
+            CourseId = courseId,
+            StudentId = studentId,
+            Grade = 0
+        });
+
+        await db.SaveChangesAsync();
+
+        EnrolledCourseIds.Add(courseId);
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,86 @@
+﻿@page "/instCourses/edit"
+@using ExaminationSystem.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@attribute [Authorize(Roles = "Instructor")]
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid Id { get; set; }
+
+    private Course? Course;
+    private List<Exam> Exams = new();
+    private List<Instructor> Instructors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        Course = await context.Courses.FirstOrDefaultAsync(c => c.Id == Id);
+        Exams = await context.Exams.ToListAsync();
+        Instructors = await context.Instructors.ToListAsync();
+
+        if (Course == null)
+        {
+            NavigationManager.NavigateTo("/notfound");
+        }
+    }
+
+    private async Task UpdateCourse()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Courses.Update(Course!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/instCourses");
+    }
+}
+
+@if (Course is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="Course" OnValidSubmit="UpdateCourse">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <input type="hidden" @bind="Course.Id" />
+
+        <div class="mb-3">
+            <label>Name:</label>
+            <InputText @bind-Value="Course.Name" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Description:</label>
+            <InputText @bind-Value="Course.Description" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Exam:</label>
+            <InputSelect @bind-Value="Course.ExamId" class="form-control">
+                <option value="">-- Select Exam --</option>
+                @foreach (var exam in Exams)
+                {
+                    <option value="@exam.Id">@exam.Title</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
+            <label>Instructor:</label>
+            <InputSelect @bind-Value="Course.InstructorId" class="form-control">
+                <option value="">-- Select Instructor --</option>
+                @foreach (var instructor in Instructors)
+                {
+                    <option value="@instructor.Id">@instructor.Name</option>
+                }
+            </InputSelect>
+        </div>
+
+        <button class="btn btn-primary">Save</button>
+    </EditForm>
+}

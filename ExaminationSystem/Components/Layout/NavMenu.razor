@@ -1,0 +1,152 @@
+﻿@implements IDisposable
+
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthProvider
+
+<div class="top-row pt-4 ps-3 navbar navbar-dark bg-dark ">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" Style="@($"color:#ec008c;")" href="">Main Menu</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable bg-dark pt-9" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+            </NavLink>
+        </div>
+
+        @if (userRole == "Instructor")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="dashboard">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Dashboard
+                </NavLink>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="studentDashboard">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Dashboard
+                </NavLink>
+            </div>
+        }
+
+        <AuthorizeView Roles="Instructor">
+            <Authorized>
+                @* <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="instDashboard">
+                        <span class="bi bi-shield-lock-fill-nav-menu" aria-hidden="true"></span> Dashboard
+                    </NavLink>
+                </div> *@
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="instCourses">
+                        <MudIcon Icon="@Icons.Material.Filled.LibraryBooks" Title="Books" Class="me-3" /> Courses
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="instExams">
+                        <MudIcon Icon="@Icons.Material.Filled.Grading" Title="List" Class="me-3" /> Exams
+                    </NavLink>
+                </div>
+			</Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Student">
+            <Authorized>
+                @* <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="studentDashboard">
+                        <span class="bi bi-shield-lock-fill-nav-menu" aria-hidden="true"></span> Dashboard
+                    </NavLink>
+                </div> *@
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="studentCourses">
+                        <MudIcon Icon="@Icons.Material.Filled.LibraryBooks" Title="List" Class="me-3" /> Courses
+                    </NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        @* <div class="nav-item px-3">
+            <NavLink class="nav-link" href="counter">
+                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            </NavLink>
+        </div> *@
+
+        @* <div class="nav-item px-3">
+            <NavLink class="nav-link" href="weather">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            </NavLink>
+        </div> *@
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Manage">
+                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <form action="Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                        <button type="submit" class="nav-link">
+                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Register">
+                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Account/Login">
+                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="About" Match="NavLinkMatch.All">
+                <MudIcon Icon="@Icons.Material.Filled.Info" Title="About" Class="me-3" /> About Us
+            </NavLink>
+        </div>
+    </nav>
+</div>
+
+@code {
+    private string? currentUrl;
+    private string? userId;
+    private string? userRole;
+
+    protected override async void OnInitialized()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
+

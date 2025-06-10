@@ -1,0 +1,59 @@
+﻿@page "/instExams"
+@using ExaminationSystem.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<h3>Exams</h3>
+
+<p><a href="/instExams/create" class="btn btn-primary">Create New</a></p>
+
+@if (Exams == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Date</th>
+                <th>Duration</th>
+                <th>Full Mark</th>
+                <th>Course</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var exam in Exams)
+            {
+                <tr>
+                    <td>@exam.Title</td>
+                    <td>@exam.Date.ToShortDateString()</td>
+                    <td>@exam.Duration</td>
+                    <td>@exam.FullMark</td>
+                    <td>@exam.Course?.Name</td>
+                    <td>
+                        <a href="/instExams/details?id=@exam.Id">Details</a> |
+                        <a href="/instExams/edit?id=@exam.Id">Edit</a> |
+                        <a href="/instExams/delete?id=@exam.Id">Delete</a> | 
+                        <a href="/instExams/@exam.Id">Exam Page</a>
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Exam>? Exams;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Exams = await context.Exams.Include(e => e.Course).ToListAsync();
+    }
+}

@@ -1,0 +1,90 @@
+﻿@page "/instExams/create"
+@using ExaminationSystem.Models
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<h3>Create Exam</h3>
+
+<EditForm Model="Exam" OnValidSubmit="AddExam">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="mb-3">
+        <label>Title:</label>
+        <InputText @bind-Value="Exam.Title" class="form-control" />
+        <ValidationMessage For="() => Exam.Title" />
+    </div>
+
+    <div class="mb-3">
+        <label>Date:</label>
+        <InputDate @bind-Value="Exam.Date" class="form-control" />
+        <ValidationMessage For="() => Exam.Date" />
+    </div>
+
+    <div class="mb-3">
+        <label>Duration (hh:mm:ss):</label>
+        <InputText @bind-Value="durationString" class="form-control" />
+        <ValidationMessage For="@(() => Exam.Duration)" />
+    </div>
+
+    <div class="mb-3">
+        <label>Full Mark:</label>
+        <InputNumber @bind-Value="Exam.FullMark" class="form-control" />
+        <ValidationMessage For="() => Exam.FullMark" />
+    </div>
+
+    <div class="mb-3">
+        <label>Course:</label>
+        <InputSelect @bind-Value="Exam.CourseId" class="form-control">
+            <option value="">-- Select Course --</option>
+            @foreach (var course in Courses)
+            {
+                <option value="@course.Id">@course.Name</option>
+            }
+        </InputSelect>
+        <ValidationMessage For="() => Exam.CourseId" />
+    </div>
+
+    <button type="submit" class="btn btn-success">Create</button>
+</EditForm>
+
+@code {
+    private Exam Exam = new();
+    private List<Course> Courses = new();
+
+    private string durationString
+    {
+        get => Exam.Duration.ToString();
+        set
+        {
+            if (TimeSpan.TryParse(value, out var result))
+            {
+                Exam.Duration = result;
+            }
+        }
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Courses = await context.Courses.ToListAsync();
+    }
+
+    private async Task AddExam()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        Exam.Course = null!;
+
+        context.Exams.Add(Exam);
+        await context.SaveChangesAsync();
+
+        NavigationManager.NavigateTo("/instExams");
+    }
+
+
+
+}

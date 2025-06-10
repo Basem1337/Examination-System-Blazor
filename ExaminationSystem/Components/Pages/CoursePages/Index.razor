@@ -1,0 +1,69 @@
+﻿@page "/instCourses"
+@using ExaminationSystem.Data
+@using ExaminationSystem.Models
+@using Microsoft.EntityFrameworkCore
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@implements IAsyncDisposable
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<h3>Courses</h3>
+
+<p>
+    <a class="btn btn-primary" href="/instCourses/create">Create New</a>
+</p>
+
+@if (Courses is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Exam ID</th>
+                <th>Instructor ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var course in Courses)
+            {
+                <tr>
+                    <td>@course.Name</td>
+                    <td>@course.Description</td>
+                    <td>@course.Exam?.Title</td>
+                    <td>@course.Instructor?.Name</td>
+                    <td>
+                        <a href="/instCourses/details?id=@course.Id">Details</a> |
+                        <a href="/instCourses/edit?id=@course.Id">Edit</a> |
+                        <a href="/instCourses/delete?id=@course.Id">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private ApplicationDbContext context = default!;
+    private List<Course>? Courses;
+
+    protected override async Task OnInitializedAsync()
+    {
+        context = DbFactory.CreateDbContext();
+
+        Courses = await context.Courses
+            .Include(c => c.Instructor)
+            .Include(c => c.Exam)
+            .ToListAsync();
+
+        Courses = await context.Courses.ToListAsync();
+    }
+
+    public async ValueTask DisposeAsync() => await context.DisposeAsync();
+}

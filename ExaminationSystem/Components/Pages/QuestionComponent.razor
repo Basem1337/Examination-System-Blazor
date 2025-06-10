@@ -1,0 +1,17 @@
+@using ExaminationSystem.Models
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<div class="border rounded p-3 my-2">
+    <InputText @bind-Value="Question.Text" class="form-control mb-2" placeholder="Question Text" />
+    <InputNumber @bind-Value="Question.Point" class="form-control mb-2" placeholder="Points" />
+
+    <AnswerList Answers="Question.Answers" />
+
+    <button class="btn btn-sm btn-danger mt-2" @onclick="OnRemove">Remove Question</button>
+</div>
+
+@code {
+    [Parameter] public Question Question { get; set; } = default!;
+    [Parameter] public EventCallback OnRemove { get; set; }
+}

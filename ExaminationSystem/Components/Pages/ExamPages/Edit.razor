@@ -1,0 +1,82 @@
+﻿@page "/instExams/edit"
+@using ExaminationSystem.Models
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<h3>Edit Exam</h3>
+
+@if (Exam is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <EditForm Model="Exam" OnValidSubmit="UpdateExam">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <input type="hidden" value="@Exam.Id" />
+
+        <div class="mb-3">
+            <label>Title:</label>
+            <InputText @bind-Value="Exam.Title" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Date:</label>
+            <InputDate @bind-Value="Exam.Date" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Duration (HH:MM):</label>
+            <InputText @bind-Value="DurationString" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Full Mark:</label>
+            <InputNumber @bind-Value="Exam.FullMark" class="form-control" />
+        </div>
+
+        <QuestionList Questions="Exam.Questions" />
+
+        <button class="btn btn-primary" type="submit">Save</button>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid Id { get; set; }
+
+    private Exam? Exam;
+    private string DurationString = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Exam = await context.Exams
+            .Include(e => e.Questions)
+                .ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(e => e.Id == Id);
+
+        if (Exam == null)
+        {
+            NavigationManager.NavigateTo("/notfound");
+            return;
+        }
+
+        DurationString = Exam.Duration.ToString(@"hh\:mm");
+    }
+
+    private async Task UpdateExam()
+    {
+        if (TimeSpan.TryParse(DurationString, out var duration))
+            Exam!.Duration = duration;
+
+        using var context = DbFactory.CreateDbContext();
+        context.Update(Exam!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/instExams");
+    }
+}

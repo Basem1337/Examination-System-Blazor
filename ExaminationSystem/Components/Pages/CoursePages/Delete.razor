@@ -1,0 +1,40 @@
+﻿@page "/instCourses/delete"
+@using ExaminationSystem.Models
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@attribute [Authorize(Roles = "Instructor")]
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid Id { get; set; }
+
+    private Course? Course;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Course = await context.Courses.FindAsync(Id);
+    }
+
+    private async Task ConfirmDelete()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Courses.Remove(Course!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/instCourses");
+    }
+}
+
+@if (Course is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <h3>Are you sure you want to delete this course?</h3>
+    <p><strong>@Course.Name</strong></p>
+
+    <button class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+    <a class="btn btn-secondary" href="/instCourses">Cancel</a>
+}

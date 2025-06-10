@@ -1,0 +1,47 @@
+﻿@page "/instExams/details"
+@using ExaminationSystem.Models
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject NavigationManager NavigationManager
+
+@attribute [Authorize]
+
+@code {
+    [SupplyParameterFromQuery] public Guid Id { get; set; }
+    private Exam? Exam;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+        Exam = await context.Exams.Include(e => e.Course).FirstOrDefaultAsync(e => e.Id == Id);
+    }
+}
+
+@if (Exam is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <div>
+        <h3>Exam Details</h3>
+        <dl class="row">
+            <dt class="col-sm-2">Title</dt>
+            <dd class="col-sm-10">@Exam.Title</dd>
+
+            <dt class="col-sm-2">Date</dt>
+            <dd class="col-sm-10">@Exam.Date.ToShortDateString()</dd>
+
+            <dt class="col-sm-2">Duration</dt>
+            <dd class="col-sm-10">@Exam.Duration</dd>
+
+            <dt class="col-sm-2">Full Mark</dt>
+            <dd class="col-sm-10">@Exam.FullMark</dd>
+
+            <dt class="col-sm-2">Course</dt>
+            <dd class="col-sm-10">@Exam.Course?.Name</dd>
+        </dl>
+
+        <a href="/instExams">Back to List</a>
+    </div>
+}

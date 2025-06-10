@@ -1,0 +1,141 @@
+﻿@page "/dashboard"
+@using Microsoft.AspNetCore.Authorization
+
+@attribute [Authorize(Roles = "Instructor")]
+
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthProvider
+@inject IExamService ExamService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Dashboard</PageTitle>
+
+@if (userRole == "Instructor")
+{
+<MudContainer Class="mt-16 px-8" MaxWidth="MaxWidth.False">
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                <MudText Typo="Typo.h6">Total Exams</MudText>
+                <MudText Typo="Typo.h4">@Exams?.Count()</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                <MudText Typo="Typo.h6">Total Courses</MudText>
+                <MudText Typo="Typo.h4">@TotalCourses</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="12" md="4">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                <MudText Typo="Typo.h6">Total Questions</MudText>
+                <MudText Typo="Typo.h4">@TotalQuestions</MudText>
+            </MudPaper>
+        </MudItem>
+
+        <MudItem xs="12" sm="12">
+            <MudPaper Elevation="2" Class="pa-4" Style="height: 50vh; overflow-y: auto;">
+                <MudText Typo="Typo.h5" Class="mb-2">Exam List</MudText>
+                <MudTable Items="Exams" Hover="true" Dense="true" Striped="true">
+                    <HeaderContent>
+                        <MudTh>Title</MudTh>
+                        <MudTh>Date</MudTh>
+                        <MudTh>Duration</MudTh>
+                        <MudTh>Full Mark</MudTh>
+                        <MudTh>Course</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd>@context.Title</MudTd>
+                        <MudTd>@context.Date.ToShortDateString()</MudTd>
+                        <MudTd>@context.Duration</MudTd>
+                        <MudTd>@context.FullMark</MudTd>
+                        <MudTd>@context.Course?.Name</MudTd>
+                        <MudTd>
+                            <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => ViewExam(context.Id))">View</MudButton>
+                            <MudButton Size="Size.Small" Color="Color.Secondary" Class="ml-2" OnClick="@(() => EditExam(context.Id))">Edit</MudButton>
+                            <MudButton Size="Size.Small" Color="Color.Error" Class="ml-2" OnClick="@(() => DeleteExam(context.Id))">Delete</MudButton>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+    </MudContainer>
+}
+else if (userRole == "Student")
+{
+    
+
+}
+
+@code {
+    private List<Exam> Exams = new();
+    private int TotalCourses = 0;
+    private int TotalQuestions = 0;
+
+    private string? userId;
+    private string? userRole;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardData();
+    }
+
+
+    private async Task LoadDashboardData()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        if (userId is null) return;
+
+        if (userRole == "Instructor")
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+
+            var instructor = await db.Instructors
+                .Include(i => i.Courses)
+                    .ThenInclude(c => c.Exam)
+                .FirstOrDefaultAsync(i => i.ApplicationUserId == userId);
+
+            if (instructor is null) return;
+
+            Exams = instructor.Courses
+                .Where(c => c.Exam != null)
+                .Select(c => c.Exam!)
+                .ToList();
+
+            TotalCourses = instructor.Courses.Count;
+
+            TotalQuestions = await db.Questions
+                .Where(q => Exams.Select(e => e.Id).Contains(q.ExamId))
+                .CountAsync();
+        }
+        else if (userRole == "Student")
+        {
+            NavigationManager.NavigateTo("/studentCourses");
+        }
+    }
+
+
+    private void ViewExam(Guid id)
+    {
+        NavigationManager.NavigateTo($"/instExams/details?id={id}");
+    }
+
+    private void EditExam(Guid id)
+    {
+        NavigationManager.NavigateTo($"/instExams/edit?id={id}");
+    }
+
+    private async Task DeleteExam(Guid id)
+    {
+        await ExamService.DeleteExamAsync(id);
+        Exams = Exams.Where(e => e.Id != id).ToList();
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,28 @@
+﻿@page "/examResult/{Grade:int}/{FullMark:int}/{Passed:bool}"
+@inject NavigationManager Navigation
+
+@attribute [Authorize(Roles = "Student")]
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-6 text-center">
+    <MudText Typo="Typo.h4">Exam Result</MudText>
+    <MudDivider Class="my-2" />
+    <MudText Typo="Typo.h6">Your Score: @Grade / @FullMark</MudText>
+    <MudText Typo="Typo.h6" Color="@((Passed) ? Color.Success : Color.Error)">
+        @(Passed ? "Congratulations! You Passed." : "Unfortunately, You Failed.")
+    </MudText>
+
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" OnClick="@GoBack">
+        Back to Courses
+    </MudButton>
+</MudContainer>
+
+@code {
+    [Parameter] public int Grade { get; set; }
+    [Parameter] public int FullMark { get; set; }
+    [Parameter] public bool Passed { get; set; }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/studentCourses");
+    }
+}

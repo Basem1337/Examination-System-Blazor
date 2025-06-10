@@ -1,0 +1,26 @@
+@using ExaminationSystem.Models
+
+@attribute [Authorize(Roles = "Instructor")]
+
+<h6>Answers</h6>
+@foreach (var answer in Answers)
+{
+    <div class="input-group mb-2">
+        <InputText @bind-Value="answer.Text" class="form-control" placeholder="Answer Text" />
+        <div class="input-group-text">
+            <input type="checkbox" @bind="answer.IsCorrect" /> Correct
+        </div>
+        <button class="btn btn-danger" @onclick="() => RemoveAnswer(answer)">X</button>
+    </div>
+}
+@if (Answers.Count < 4)
+{
+    <button class="btn btn-sm btn-outline-primary" @onclick="AddAnswer">+ Add Answer</button>
+}
+
+@code {
+    [Parameter] public ICollection<Answer> Answers { get; set; } = new List<Answer>();
+
+    private void AddAnswer() => Answers.Add(new Answer { Id = Guid.NewGuid() });
+    private void RemoveAnswer(Answer answer) => Answers.Remove(answer);
+}

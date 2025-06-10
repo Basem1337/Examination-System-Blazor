@@ -1,0 +1,151 @@
+﻿@page "/takeExam/{ExamId:guid}"
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject AuthenticationStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+@attribute [Authorize(Roles = "Student")]
+
+<MudContainer MaxWidth="MaxWidth.False" Class="mt-4">
+    @if (Exam is null)
+    {
+        <MudText Typo="Typo.h6" Color="Color.Error">Exam not found or loading...</MudText>
+    }
+    else
+    {
+        <MudText Typo="Typo.h5">@Exam.Title</MudText>
+        <MudText Typo="Typo.subtitle2">Duration: @Exam.Duration.TotalMinutes minutes</MudText>
+        <MudText Typo="Typo.subtitle2">Full Mark: @Exam.FullMark</MudText>
+        <MudDivider Class="my-2" />
+
+        @foreach (var question in Exam.Questions)
+        {
+            <MudPaper Class="pa-3 mb-3">
+                <MudText Typo="Typo.h6">@question.Text</MudText>
+
+                <MudRadioGroup T="Guid" @bind-SelectedValue="SelectedAnswers[question.Id]">
+                    <MudGrid>
+                        @foreach (var answer in question.Answers)
+                        {
+                            <MudItem xs="6">
+                                <MudButton Variant="@((SelectedAnswers[question.Id] == answer.Id) ? Variant.Filled : Variant.Outlined)"
+                                           Color="Color.Primary"
+                                           FullWidth="true"
+                                           OnClick="@(() => SelectAnswer(question.Id, answer.Id))">
+                                    @answer.Text
+                                </MudButton>
+                            </MudItem>
+                        }
+                    </MudGrid>
+                </MudRadioGroup>
+
+            </MudPaper>
+        }
+
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SubmitExam">Submit</MudButton>
+    }
+</MudContainer>
+
+@code {
+    [Parameter] public Guid ExamId { get; set; }
+
+    private Exam? Exam;
+    private Dictionary<Guid, Guid> SelectedAnswers = new();
+
+    private void SelectAnswer(Guid questionId, Guid answerId)
+    {
+        SelectedAnswers[questionId] = answerId;
+    }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (!Guid.TryParse(userId, out var userGuid))
+        {
+            return;
+        }
+
+        var student = await db.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == userGuid.ToString());
+        if (student == null) return;
+
+        var stdCrs = await db.StudentCourses
+            .FirstOrDefaultAsync(sc => sc.StudentId == student.Id && sc.CourseId == ExamId);
+
+        if (stdCrs != null && stdCrs.Grade > 0)
+        {
+            Navigation.NavigateTo($"/examResult/{stdCrs.Grade}/{0}/{(stdCrs.Grade >= (Exam?.FullMark ?? 0) / 2)}");
+            return;
+        }
+
+        Exam = await db.Exams
+            .Include(e => e.Questions)
+                .ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(e => e.Id == ExamId);
+
+        if (Exam != null)
+        {
+            foreach (var q in Exam.Questions)
+            {
+                SelectedAnswers[q.Id] = Guid.Empty;
+            }
+        }
+    }
+
+
+    private async void SubmitExam()
+    {
+        if (Exam is null) return;
+
+        using var db = await DbFactory.CreateDbContextAsync();
+
+        var exam = await db.Exams
+            .Include(e => e.Questions)
+                .ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(e => e.Id == Exam.Id);
+
+        if (exam is null) return;
+
+        decimal totalScore = 0;
+        foreach (var question in exam.Questions)
+        {
+            var correctAnswer = question.Answers.FirstOrDefault(a => a.IsCorrect);
+            if (correctAnswer != null && SelectedAnswers.TryGetValue(question.Id, out var selectedAnswerId))
+            {
+                if (selectedAnswerId == correctAnswer.Id)
+                {
+                    totalScore += question.Point;
+                }
+            }
+        }
+
+        bool passed = totalScore >= (exam.FullMark / 2.0m);
+
+        var studentIdClaim = (await AuthProvider.GetAuthenticationStateAsync()).User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (Guid.TryParse(studentIdClaim, out var userGuid))
+        {
+            var student = await db.Students.FirstOrDefaultAsync(s => s.ApplicationUserId == userGuid.ToString());
+            if (student != null)
+            {
+                var stdCrs = await db.StudentCourses
+                    .FirstOrDefaultAsync(sc => sc.StudentId == student.Id && sc.CourseId == exam.CourseId);
+
+                if (stdCrs != null)
+                {
+                    stdCrs.Grade = (int)totalScore;
+                    await db.SaveChangesAsync();
+
+                    Console.WriteLine($"Grade saved: {stdCrs.Grade} - {(passed ? "Passed" : "Failed")}");
+                }
+            }
+        }
+
+        Navigation.NavigateTo($"/examResult/{(int)totalScore}/{exam.FullMark}/{passed.ToString().ToLower()}");
+
+    }
+
+}
