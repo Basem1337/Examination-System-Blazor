@@ -3,8 +3,8 @@
 @attribute [Authorize(Roles = "Instructor")]
 
 <div class="border rounded p-3 my-2">
-    <InputText @bind-Value="Question.Text" class="form-control mb-2" placeholder="Question Text" />
-    <InputNumber @bind-Value="Question.Point" class="form-control mb-2" placeholder="Points" />
+    Question: <InputText @bind-Value="Question.Text" class="form-control mb-2" placeholder="Question Text" />
+    Points: <InputNumber @bind-Value="Question.Point" class="form-control mb-2" placeholder="Points" />
 
     <AnswerList Answers="Question.Answers" />
 

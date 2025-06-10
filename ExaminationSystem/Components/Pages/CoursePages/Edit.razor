@@ -6,37 +6,6 @@
 
 @attribute [Authorize(Roles = "Instructor")]
 
-@code {
-    [SupplyParameterFromQuery]
-    public Guid Id { get; set; }
-
-    private Course? Course;
-    private List<Exam> Exams = new();
-    private List<Instructor> Instructors = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        using var context = DbFactory.CreateDbContext();
-
-        Course = await context.Courses.FirstOrDefaultAsync(c => c.Id == Id);
-        Exams = await context.Exams.ToListAsync();
-        Instructors = await context.Instructors.ToListAsync();
-
-        if (Course == null)
-        {
-            NavigationManager.NavigateTo("/notfound");
-        }
-    }
-
-    private async Task UpdateCourse()
-    {
-        using var context = DbFactory.CreateDbContext();
-        context.Courses.Update(Course!);
-        await context.SaveChangesAsync();
-        NavigationManager.NavigateTo("/instCourses");
-    }
-}
-
 @if (Course is null)
 {
     <p><em>Loading...</em></p>
@@ -81,6 +50,41 @@ else
             </InputSelect>
         </div>
 
-        <button class="btn btn-primary">Save</button>
+        <button class="btn text-white" Style="@($"background:#ec008c;")">Save</button>
+
+        <span>
+            <a class="btn btn-outline-danger" href="/instCourses">Cancel</a>
+        </span>
     </EditForm>
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid Id { get; set; }
+
+    private Course? Course;
+    private List<Exam> Exams = new();
+    private List<Instructor> Instructors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var context = DbFactory.CreateDbContext();
+
+        Course = await context.Courses.FirstOrDefaultAsync(c => c.Id == Id);
+        Exams = await context.Exams.ToListAsync();
+        Instructors = await context.Instructors.ToListAsync();
+
+        if (Course == null)
+        {
+            NavigationManager.NavigateTo("/notfound");
+        }
+    }
+
+    private async Task UpdateCourse()
+    {
+        using var context = DbFactory.CreateDbContext();
+        context.Courses.Update(Course!);
+        await context.SaveChangesAsync();
+        NavigationManager.NavigateTo("/instCourses");
+    }
 }

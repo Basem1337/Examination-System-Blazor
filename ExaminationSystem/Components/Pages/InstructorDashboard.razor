@@ -16,18 +16,27 @@
     <MudGrid>
         <MudItem xs="12" sm="6" md="4">
             <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Grade" Title="Grade" Size="Size.Large" Color="Color.Secondary" />
+                    <br />
+                    <br />
                 <MudText Typo="Typo.h6">Total Exams</MudText>
                 <MudText Typo="Typo.h4">@Exams?.Count()</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="6" md="4">
             <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                    <MudIcon Icon="@Icons.Material.Filled.LibraryBooks" Title="LibraryBooks" Size="Size.Large" Color="Color.Secondary" />
+                    <br />
+                    <br />
                 <MudText Typo="Typo.h6">Total Courses</MudText>
                 <MudText Typo="Typo.h4">@TotalCourses</MudText>
             </MudPaper>
         </MudItem>
         <MudItem xs="12" sm="12" md="4">
             <MudPaper Elevation="2" Class="pa-4" Style="height: 200px;">
+                    <MudIcon Icon="@Icons.Material.Filled.QuestionAnswer" Title="QuestionAnswer" Size="Size.Large" Color="Color.Secondary" />
+                    <br />
+                    <br />
                 <MudText Typo="Typo.h6">Total Questions</MudText>
                 <MudText Typo="Typo.h4">@TotalQuestions</MudText>
             </MudPaper>
@@ -54,7 +63,7 @@
                         <MudTd>
                             <MudButton Size="Size.Small" Color="Color.Primary" OnClick="@(() => ViewExam(context.Id))">View</MudButton>
                             <MudButton Size="Size.Small" Color="Color.Secondary" Class="ml-2" OnClick="@(() => EditExam(context.Id))">Edit</MudButton>
-                            <MudButton Size="Size.Small" Color="Color.Error" Class="ml-2" OnClick="@(() => DeleteExam(context.Id))">Delete</MudButton>
+                            @* <MudButton Size="Size.Small" Color="Color.Error" Class="ml-2" OnClick="@(() => DeleteExam(context.Id))">Delete</MudButton> *@
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -132,10 +141,10 @@ else if (userRole == "Student")
         NavigationManager.NavigateTo($"/instExams/edit?id={id}");
     }
 
-    private async Task DeleteExam(Guid id)
-    {
-        await ExamService.DeleteExamAsync(id);
-        Exams = Exams.Where(e => e.Id != id).ToList();
-        StateHasChanged();
-    }
+    // private async Task DeleteExam(Guid id)
+    // {
+    //     await ExamService.DeleteExamAsync(id);
+    //     Exams = Exams.Where(e => e.Id != id).ToList();
+    //     StateHasChanged();
+    // }
 }

@@ -8,11 +8,13 @@
 
 @attribute [Authorize(Roles = "Instructor")]
 
-<h3>Courses</h3>
+<div class="d-flex align-content-between justify-content-between">
+    <h3>Courses</h3>
 
-<p>
-    <a class="btn btn-primary" href="/instCourses/create">Create New</a>
-</p>
+    <p>
+        <a class="btn btn-primary border-0" href="/instCourses/create" style="background: linear-gradient(to right, #fc6767, #ec008c);"><MudIcon Icon="@Icons.Material.Filled.Add" Title="Add" />Create New</a>
+    </p>
+</div>
 
 @if (Courses is null)
 {

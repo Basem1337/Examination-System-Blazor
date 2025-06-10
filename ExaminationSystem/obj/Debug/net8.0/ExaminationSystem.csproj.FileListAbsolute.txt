@@ -272,3 +272,4 @@ D:\ITI Material\Blazor\D03\ExaminationSystem\ExaminationSystem\bin\Debug\net8.0\
 D:\ITI Material\Blazor\D03\ExaminationSystem\ExaminationSystem\bin\Debug\net8.0\runtimes\win\lib\net7.0\System.Drawing.Common.dll
 D:\ITI Material\Blazor\D03\ExaminationSystem\ExaminationSystem\bin\Debug\net8.0\runtimes\win\lib\net7.0\System.Security.Cryptography.ProtectedData.dll
 D:\ITI Material\Blazor\D03\ExaminationSystem\ExaminationSystem\bin\Debug\net8.0\runtimes\win\lib\net7.0\System.Windows.Extensions.dll
+D:\ITI Material\Blazor\D03\ExaminationSystem\ExaminationSystem\obj\Debug\net8.0\ExaminationSystem.sourcelink.json

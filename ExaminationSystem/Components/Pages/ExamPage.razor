@@ -17,8 +17,11 @@ else
         <QuestionComponent Question="question" OnRemove="@(() => RemoveQuestion(question))" />
     }
 
-    <button class="btn btn-outline-primary" @onclick="AddQuestion">+ Add Question</button>
-    <button class="btn btn-success" @onclick="SaveChanges">Save All</button>
+    <button class="btn btn-outline-dark" @onclick="AddQuestion">+ Add Question</button>
+    <button class="btn text-white" Style="@($"background:#ec008c;")" @onclick="SaveChanges">Save All</button>
+    <span>
+        <a class="btn btn-outline-danger" href="/instExams">Cancel</a>
+    </span>
 
     @if (!string.IsNullOrEmpty(ErrorMessage))
     {

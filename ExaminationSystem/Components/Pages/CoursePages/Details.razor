@@ -6,33 +6,6 @@
 
 @attribute [Authorize]
 
-@code {
-    [SupplyParameterFromQuery]
-    public Guid Id { get; set; }
-
-    private string? userId;
-    private string? userRole;
-
-    private Course? Course;
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        userRole = user.FindFirst(ClaimTypes.Role)?.Value;
-
-        using var context = await DbFactory.CreateDbContextAsync();
-
-        Course = await context.Courses
-            .Include(c => c.Exam)
-            .Include(c => c.Instructor)
-            .FirstOrDefaultAsync(c => c.Id == Id);
-    }
-
-}
-
 @if (Course is null)
 {
     <p><em>Loading...</em></p>
@@ -61,4 +34,31 @@ else
     {
         <a class="btn btn-secondary" href="/studentCourses">Back</a>
     }
+}
+
+@code {
+    [SupplyParameterFromQuery]
+    public Guid Id { get; set; }
+
+    private string? userId;
+    private string? userRole;
+
+    private Course? Course;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        userId = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        userRole = user.FindFirst(ClaimTypes.Role)?.Value;
+
+        using var context = await DbFactory.CreateDbContextAsync();
+
+        Course = await context.Courses
+            .Include(c => c.Exam)
+            .Include(c => c.Instructor)
+            .FirstOrDefaultAsync(c => c.Id == Id);
+    }
+
 }

@@ -47,7 +47,11 @@
         <ValidationMessage For="() => Exam.CourseId" />
     </div>
 
-    <button type="submit" class="btn btn-success">Create</button>
+    <button type="submit" class="btn text-white" Style="@($"background:#ec008c;")">Create</button>
+
+    <span>
+        <a class="btn btn-outline-danger" href="/instExams">Cancel</a>
+    </span>
 </EditForm>
 
 @code {
